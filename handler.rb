@@ -1,7 +1,6 @@
 # lambda_function.rb
 require 'json'
 require 'logger'
-require 'aws-sdk-lambda'
 require 'httparty'
 
 CHUNK_SIZE=4096   # max allowed for telegram
