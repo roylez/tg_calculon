@@ -1,0 +1,32 @@
+service: calculon
+useDotenv: true
+
+provider:
+  name: aws
+  runtime: ruby2.7
+  region: ap-southeast-2
+  memorySize: 128
+  timeout: 15
+
+functions:
+  authorize:
+    handler: handler.authorize
+    environment:
+      AUTH_SECRET: ${env:AUTH_SECRET}
+  message:
+    handler: handler.handle
+    environment:
+      CHAT_ID: ${env:CHAT_ID}
+      TOKEN: ${env:TOKEN}
+    events:
+      - http:
+          path: message
+          method: post
+          authorizer: authorize
+
+plugins:
+  - serverless-hooks-plugin
+custom:
+  hooks:
+    package:initialize:
+      - bundle install
