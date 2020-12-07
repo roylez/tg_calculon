@@ -16,8 +16,11 @@ def handle(event:, context:)
   logger.info "#### EVENT ####"
   logger.info event.to_json
   
-  uri = "https://api.telegram.org/bot#{ENV['TOKEN']}/sendMessage"
-  chunks = word_wrap(event["body"], line_width: CHUNK_SIZE, break_sequence: "\r\r\n").split("\r\r\n")
+  uri  = "https://api.telegram.org/bot#{ENV['TOKEN']}/sendMessage"
+
+  from = event.dig("requestContext", "authorizer", "from" )
+  text = from ? "[#{from}] #{event["body"]}" : event["body"]
+  chunks = word_wrap(text, line_width: CHUNK_SIZE, break_sequence: "\r\r\n").split("\r\r\n")
   
   chunks.collect do |c|
     data = {
@@ -32,9 +35,11 @@ def handle(event:, context:)
 end
 
 def authorize(event:, context:)
-  allowed = event["authorizationToken"] == ENV['AUTH_SECRET']
-  {
-    "principalId": "calculon",
+  secret = ENV['AUTH_SECRET']
+  allowed = event["authorizationToken"].start_with?(secret)
+  from    = event["authorizationToken"][/^#{secret}\.?(.+)$/, 1]
+  res = {
+    "principalId": secret,
     "policyDocument": {
       "Version": "2012-10-17",
       "Statement": [
@@ -44,6 +49,8 @@ def authorize(event:, context:)
           "Resource": event["methodArn"]
         }
       ]
-    }
+    },
   }
+  res_context = { "from": from }
+  from ? res.merge({ "context": res_context }) : res
 end
